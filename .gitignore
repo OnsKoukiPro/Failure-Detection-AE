@@ -12,7 +12,7 @@ env/
 .venv/
 .python-version
 
-# IDE and OS files
+# IDE and OS file
 .vscode/
 .idea/
 .DS_Store
