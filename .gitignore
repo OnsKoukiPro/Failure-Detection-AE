@@ -1,7 +1,7 @@
 # Data directories and files
-data/               # Ignore the entire data directory
-*.wav               # Ignore all WAV files
-*.csv               # Ignore CSV files (unless you want to track metadata)
+data/**/*           
+*.wav
+*.csv
 
 # Python and environment files
 __pycache__/
