@@ -1,5 +1,7 @@
 # Data directories and files
-data/               # Raw WAV files
+data/               # Ignore the entire data directory
+*.wav               # Ignore all WAV files
+*.csv               # Ignore CSV files (unless you want to track metadata)
 
 # Python and environment files
 __pycache__/
@@ -9,3 +11,8 @@ venv/
 env/
 .venv/
 .python-version
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store

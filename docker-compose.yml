@@ -4,7 +4,8 @@ services:
   ae-model:
     build: .
     volumes:
-      - ./data:/app/data      
+      - ./data:/app/data
+      - ./data/overview.csv:/app/data/overview.csv
       - ./results:/app/results
     environment:
       - PYTHONUNBUFFERED=1
