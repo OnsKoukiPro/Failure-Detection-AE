@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  ae-model:
+    build: .
+    volumes:
+      - ./data:/app/data      
+      - ./results:/app/results
+    environment:
+      - PYTHONUNBUFFERED=1

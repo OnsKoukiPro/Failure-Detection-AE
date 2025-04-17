@@ -1,0 +1,11 @@
+# Data directories and files
+data/               # Raw WAV files
+
+# Python and environment files
+__pycache__/
+*.py[cod]
+.env
+venv/
+env/
+.venv/
+.python-version
