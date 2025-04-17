@@ -1,1 +1,13 @@
 -Mapping WAV files to Metadata
+-Preprocessing of WAV files :
+    -Normalization
+    -Filter noise
+    -Trim silence
+    -Combine channels
+- Feature Extraction
+    - Time-Domain Features: Amplitude, RMS, zero-crossing rate.
+    - Frequency-Domain Features:
+    - FFT peaks, spectral entropy, Mel-frequency cepstral coefficients (MFCCs).
+    - Time-Frequency Features:
+        - Spectrograms (using librosa.stft or torchaudio).
+        - Wavelet transforms (e.g., Continuous Wavelet Transform for AE bursts)
