@@ -1,5 +1,4 @@
-# Makefile
-.PHONY: build run clean help
+.PHONY: build map preprocess clean help
 
 # Variables
 PROJECT_NAME := ae-model
@@ -8,12 +7,15 @@ PROJECT_NAME := ae-model
 build:
 	docker-compose build
 
-# Run the container (build first if needed)
-run: build
-	docker-compose run --rm $(PROJECT_NAME)
+# Step 1: Dataset Mapping (mapped_dataset.csv)
+map: build
+	docker-compose run --rm $(PROJECT_NAME) python src/map.py
+	@echo "Step 1 (Mapping) completed. Check ./results/mapped_dataset.csv"
 
-# Build and run in one command
-all: build run
+# Step 2: Preprocessing (mapped_dataset.csv)
+preprocess: build
+	docker-compose run --rm $(PROJECT_NAME) python src/preprocess.py
+	@echo "Step 3 (Preprocessing) completed. Check ./results/processed_data/"
 
 # Clean Docker artifacts
 clean:
@@ -25,8 +27,8 @@ help:
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Targets:"
-	@echo "  build     Build the Docker image"
-	@echo "  run       Run the container (builds first if needed)"
-	@echo "  all       Build and run in one step"
-	@echo "  clean     Remove Docker containers, images, and volumes"
-	@echo "  help      Show this help message"
+	@echo "  build       Build the Docker image"
+	@echo "  map         Run Step 1 (map WAV files to CSV metadata)"
+	@echo "  preprocess  Run Step 3 (preprocess signals and combine channels)"
+	@echo "  clean       Remove Docker containers, images, and volumes"
+	@echo "  help        Show this help message"
