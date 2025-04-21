@@ -17,6 +17,11 @@ preprocess: build
 	docker-compose run --rm $(PROJECT_NAME) python src/preprocess.py
 	@echo "Step 3 (Preprocessing) completed. Check ./results/processed_data/"
 
+# Step 3: Feature extraction
+features: build
+	docker-compose run --rm $(PROJECT_NAME) python src/featextract.py
+	@echo "Feature extraction completed. Check ./results/features/"
+
 # Clean Docker artifacts
 clean:
 	docker-compose down --rmi all --volumes
