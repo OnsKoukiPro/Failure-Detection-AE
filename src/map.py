@@ -6,7 +6,7 @@ from collections import defaultdict
 
 # Docker paths (mounted volumes)
 CSV_PATH = "/app/data/overview.csv"
-WAV_ROOT_DIR = "/app/data/raw"  # Adjusted to raw subdirectory
+WAV_ROOT_DIR = "/app/data/"
 OUTPUT_PATH = "/app/results/mapped_dataset.csv"
 
 # --- Step 1: Parse CSV Metadata ---
