@@ -1,7 +1,9 @@
 # Data directories and files
-data/**/*           
+data/**/*
 *.wav
 *.csv
+
+results/
 
 # Python and environment files
 __pycache__/
