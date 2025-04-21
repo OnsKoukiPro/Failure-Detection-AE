@@ -17,7 +17,7 @@ def normalize_signal(signal):
 
 def bandpass_filter(signal, sample_rate, lowcut, highcut):
     nyquist = 0.5 * sample_rate
-    highcut = min(highcut, 0.95 * nyquist)  # 95% safety margin
+    highcut = min(highcut, 0.95 * nyquist)
     low = lowcut / nyquist
     high = highcut / nyquist
     b, a = butter(4, [low, high], btype='band')
@@ -43,10 +43,22 @@ def process_file(wav_path, output_dir):
 
 def combine_channels(measurement_group, output_dir):
     combined_data = []
+    min_length = None
+
+    # Load signals and find minimum length
     for _, row in measurement_group.iterrows():
         signal = np.load(row["processed_path"])
         combined_data.append(signal)
-    combined_signal = np.mean(combined_data, axis=0)
+        if min_length is None or len(signal) < min_length:
+            min_length = len(signal)
+
+    # Trim all signals to the shortest length
+    trimmed_data = [signal[:min_length] for signal in combined_data]
+
+    # Average the trimmed signals
+    combined_signal = np.mean(trimmed_data, axis=0)
+
+    # Generate output path
     measurement_id = measurement_group["measurement"].iloc[0]
     timestamp_str = measurement_group["timestamp"].iloc[0].strftime("%Y%m%d_%H%M%S")
     output_path = os.path.join(output_dir, f"{measurement_id}_{timestamp_str}_combined.npy")
@@ -55,25 +67,27 @@ def combine_channels(measurement_group, output_dir):
 
 if __name__ == "__main__":
     df = pd.read_csv(INPUT_CSV)
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # Process only "good" data
-    filtered_df = df[df["csv_label"] == "good"]
+    # Process all data
     processed_paths = []
-    for _, row in filtered_df.iterrows():
+    for _, row in df.iterrows():
         output_path = process_file(row["wav_path"], OUTPUT_DIR)
         processed_paths.append(output_path)
-    df["processed_path"] = processed_paths
-    
+
     # Update DataFrame with processed paths
-    filtered_df["processed_path"] = processed_paths
+    df["processed_path"] = processed_paths
 
-    # Combine channels by measurement and timestamp
+    # Combine channels with error handling
     combined_paths = []
-    for (measurement, timestamp), group in filtered_df.groupby(["measurement", "timestamp"]):
-        if len(group) >= 2:  # At least two channels
-            combined_path = combine_channels(group, OUTPUT_DIR)
-            combined_paths.append(combined_path)
+    for (measurement, timestamp), group in df.groupby(["measurement", "timestamp"]):
+        if len(group) >= 2:
+            try:
+                combined_path = combine_channels(group, OUTPUT_DIR)
+                combined_paths.append(combined_path)
+            except Exception as e:
+                print(f"Failed to combine {measurement} @ {timestamp}: {str(e)}")
 
-    # Save filtered metadata
-    filtered_df.to_csv(os.path.join(OUTPUT_DIR, "processed_metadata.csv"), index=False)
+    # Save metadata
+    df.to_csv(os.path.join(OUTPUT_DIR, "processed_metadata.csv"), index=False)
