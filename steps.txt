@@ -11,7 +11,7 @@ Step 3- Feature Extraction
     - Time-Frequency Features:
         - Spectrograms (using librosa.stft or torchaudio).
         - Wavelet transforms (e.g., Continuous Wavelet Transform for AE bursts)
-Step 4-Labeling for Failure Detection
+Step 4- Labeling for Failure Detection
 Current Labels: good, invalid, Frequency not good, Quotient not good.
 Redefine Labels:
 If good = non-failure and Frequency not good/Quotient not good = failure indicators:

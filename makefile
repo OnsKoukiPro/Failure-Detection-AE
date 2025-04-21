@@ -34,6 +34,7 @@ help:
 	@echo "Targets:"
 	@echo "  build       Build the Docker image"
 	@echo "  map         Run Step 1 (map WAV files to CSV metadata)"
-	@echo "  preprocess  Run Step 3 (preprocess signals and combine channels)"
+	@echo "  preprocess  Run Step 2 (preprocess signals and combine channels)"
+	@echo "  features    Run Step 3 (feature extraction based on preprocessed data)"
 	@echo "  clean       Remove Docker containers, images, and volumes"
 	@echo "  help        Show this help message"

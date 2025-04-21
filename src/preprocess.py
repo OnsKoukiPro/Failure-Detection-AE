@@ -63,7 +63,8 @@ if __name__ == "__main__":
     for _, row in filtered_df.iterrows():
         output_path = process_file(row["wav_path"], OUTPUT_DIR)
         processed_paths.append(output_path)
-
+    df["processed_path"] = processed_paths
+    
     # Update DataFrame with processed paths
     filtered_df["processed_path"] = processed_paths
 
