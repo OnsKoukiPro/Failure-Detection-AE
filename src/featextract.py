@@ -10,7 +10,7 @@ from tqdm import tqdm
 # Configuration
 INPUT_CSV = "/app/results/processed_data/processed_metadata.csv"
 OUTPUT_DIR = "/app/results/features"
-SAMPLE_RATE = 102400  # Matches your WAV files (102.4 kHz)
+SAMPLE_RATE = 102400
 N_MFCC = 13
 
 def extract_time_domain_features(signal):
@@ -40,12 +40,15 @@ def extract_freq_domain_features(signal, sample_rate):
     for i in range(3):
         features[f"dominant_freq_{i+1}"] = dominant_freqs[i] if i < len(dominant_freqs) else 0.0
 
-    # MFCCs with fmax
+    # MFCCs with 128k FFT
     mfccs = librosa.feature.mfcc(
         y=signal,
         sr=sample_rate,
         n_mfcc=N_MFCC,
-        fmax=sample_rate // 2  # Avoid empty filters
+        n_fft=131072,  # 128k FFT
+        hop_length=131072,  # No overlap
+        window='boxcar',  # Rectangular window
+        fmax=sample_rate // 2
     )
     for i in range(N_MFCC):
         features[f"mfcc_{i+1}"] = np.mean(mfccs[i])
@@ -56,15 +59,16 @@ def extract_time_freq_features(signal, sample_rate):
     """Extract time-frequency features."""
     features = {}
 
-    # Spectrogram (STFT magnitude)
-    stft = librosa.stft(signal)
+    # Spectrogram with 128k FFT and rectangular window
+    n_fft = 131072  # 128k FFT
+    stft = librosa.stft(signal, n_fft=n_fft, window='boxcar')  # Boxcar = rectangular
     stft_mag = np.abs(stft)
     features["spectrogram_mean"] = np.mean(stft_mag)
     features["spectrogram_std"] = np.std(stft_mag)
 
     # Wavelet Transform (CWT)
     central_freq = 1.0  # For 'cmor1.5-1.0' wavelet
-    desired_freqs = np.array([1000, 50000])  # 1 kHz to 50 kHz (valid range)
+    desired_freqs = np.array([20000, 50000])  # 20 kHz to 50 kHz
     scales = (central_freq * sample_rate) / desired_freqs
 
     # Validate scales

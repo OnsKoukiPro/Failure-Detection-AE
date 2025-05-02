@@ -7,8 +7,8 @@ import pandas as pd
 # Configuration
 INPUT_CSV = "/app/results/mapped_dataset.csv"
 OUTPUT_DIR = "/app/results/processed_data"
-FILTER_LOW = 20000    # 20 kHz
-FILTER_HIGH = 200000  # 200 kHz (for 500 kHz sampling rate)
+FILTER_LOW = 1000    # 1 kHz
+FILTER_HIGH = 50000  # 50 kHz (102.4 kHz sampling rate)
 SILENCE_THRESHOLD = 0.01
 
 def normalize_signal(signal):
@@ -32,7 +32,9 @@ def trim_silence(signal, threshold=SILENCE_THRESHOLD):
 
 def process_file(wav_path, output_dir):
     sample_rate, signal = wavfile.read(wav_path)
-    print(f"Processing {wav_path} | Sampling rate: {sample_rate} Hz")
+    assert sample_rate == 102400, f"Unexpected sampling rate: {sample_rate} Hz"
+    if len(signal) != 51200:
+        signal = signal[:51200]
     signal = normalize_signal(signal)
     signal = bandpass_filter(signal, sample_rate, FILTER_LOW, FILTER_HIGH)
     signal = trim_silence(signal)
