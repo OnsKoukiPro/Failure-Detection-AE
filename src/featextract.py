@@ -89,8 +89,9 @@ if __name__ == "__main__":
         features.update(extract_time_domain_features(signal))
         features.update(extract_freq_domain_features(signal, SAMPLE_RATE))
         features.update(extract_time_freq_features(signal, SAMPLE_RATE))
-        features["label"] = row["label"]  # Use binary label
+        features["label"] = row["label"]  # Use binary label 1 or 0
         features["measurement"] = row["measurement"]
+        features["timestamp"] = row["timestamp"]
         all_features.append(features)
 
     pd.DataFrame(all_features).to_csv(os.path.join(OUTPUT_DIR, "features.csv"), index=False)
