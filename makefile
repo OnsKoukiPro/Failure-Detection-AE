@@ -32,6 +32,13 @@ split: build
 	docker-compose run --rm $(PROJECT_NAME) python src/splitdata.py
 	@echo "Feature extraction completed. Check ./results/splits/"
 
+# Step 5: Train Model
+train: build
+	docker-compose run --rm $(PROJECT_NAME) python src/train.py \
+		--train_csv /app/results/splits/stratified_train.csv \
+		--test_csv /app/results/splits/stratified_test.csv \
+		--model_type rf
+
 # Clean Docker artifacts
 clean:
 	docker-compose down --rmi all --volumes
