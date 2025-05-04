@@ -45,9 +45,9 @@ def extract_freq_domain_features(signal, sample_rate):
         y=signal,
         sr=sample_rate,
         n_mfcc=N_MFCC,
-        n_fft=131072,  # 128k FFT
-        hop_length=131072,  # No overlap
-        window='boxcar',  # Rectangular window
+        n_fft=131072,
+        hop_length=131072,
+        window='boxcar',
         fmax=sample_rate // 2
     )
     for i in range(N_MFCC):
@@ -59,16 +59,14 @@ def extract_time_freq_features(signal, sample_rate):
     """Extract time-frequency features."""
     features = {}
 
-    # Spectrogram with 128k FFT and rectangular window
-    n_fft = 131072  # 128k FFT
-    stft = librosa.stft(signal, n_fft=n_fft, window='boxcar')  # Boxcar = rectangular
+    n_fft = 131072
+    stft = librosa.stft(signal, n_fft=n_fft, window='boxcar')
     stft_mag = np.abs(stft)
     features["spectrogram_mean"] = np.mean(stft_mag)
     features["spectrogram_std"] = np.std(stft_mag)
 
-    # Wavelet Transform (CWT)
-    central_freq = 1.0  # For 'cmor1.5-1.0' wavelet
-    desired_freqs = np.array([20000, 50000])  # 20 kHz to 50 kHz
+    central_freq = 1.0
+    desired_freqs = np.array([20000, 50000])
     scales = (central_freq * sample_rate) / desired_freqs
 
     # Validate scales
@@ -91,7 +89,7 @@ if __name__ == "__main__":
         features.update(extract_time_domain_features(signal))
         features.update(extract_freq_domain_features(signal, SAMPLE_RATE))
         features.update(extract_time_freq_features(signal, SAMPLE_RATE))
-        features["label"] = row["csv_label"]
+        features["label"] = row["label"]  # Use binary label
         features["measurement"] = row["measurement"]
         all_features.append(features)
 

@@ -68,11 +68,12 @@ def combine_channels(measurement_group, output_dir):
     return output_path
 
 if __name__ == "__main__":
+    # Load and preprocess data
     df = pd.read_csv(INPUT_CSV)
     df["timestamp"] = pd.to_datetime(df["timestamp"])
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # Process all data
+    # Process all files
     processed_paths = []
     for _, row in df.iterrows():
         output_path = process_file(row["wav_path"], OUTPUT_DIR)
@@ -81,9 +82,15 @@ if __name__ == "__main__":
     # Update DataFrame with processed paths
     df["processed_path"] = processed_paths
 
-    # Combine channels with error handling
+    # Filter data and create binary labels
+    filtered_df = df[df["csv_label"] != "invalid"].copy()
+    filtered_df["label"] = filtered_df["csv_label"].apply(
+        lambda x: 0 if x == "good" else 1
+    )
+
+    # Combine valid channels
     combined_paths = []
-    for (measurement, timestamp), group in df.groupby(["measurement", "timestamp"]):
+    for (measurement, timestamp), group in filtered_df.groupby(["measurement", "timestamp"]):
         if len(group) >= 2:
             try:
                 combined_path = combine_channels(group, OUTPUT_DIR)
@@ -91,5 +98,5 @@ if __name__ == "__main__":
             except Exception as e:
                 print(f"Failed to combine {measurement} @ {timestamp}: {str(e)}")
 
-    # Save metadata
-    df.to_csv(os.path.join(OUTPUT_DIR, "processed_metadata.csv"), index=False)
+    # Save filtered metadata
+    filtered_df.to_csv(os.path.join(OUTPUT_DIR, "processed_metadata.csv"), index=False)
