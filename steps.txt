@@ -16,5 +16,7 @@ Current Labels: good, invalid, Frequency not good, Quotient not good.
 Redefine Labels:
 If good = non-failure and Frequency not good/Quotient not good = failure indicators:
 Binary labels: 0 (good), 1 (failure).
-
-
+Step 5: Train-Test Split
+Time-Series Split: Since timestamps are sequential, the data will be split chronologically
+ (e.g., first 80% for training, next 10% validation, last 10% test).
+- classes also present an imbalacement, so Stratified Split is also performed 

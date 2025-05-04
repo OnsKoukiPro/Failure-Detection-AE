@@ -22,6 +22,11 @@ features: build
 	docker-compose run --rm $(PROJECT_NAME) python src/featextract.py
 	@echo "Feature extraction completed. Check ./results/features/"
 
+# Step 4: Data Split (Test / Train)
+split: build
+	docker-compose run --rm $(PROJECT_NAME) python src/splitdata.py
+	@echo "Feature extraction completed. Check ./results/splits/"
+
 # Clean Docker artifacts
 clean:
 	docker-compose down --rmi all --volumes
@@ -36,5 +41,6 @@ help:
 	@echo "  map         Run Step 1 (map WAV files to CSV metadata)"
 	@echo "  preprocess  Run Step 2 (preprocess signals and combine channels)"
 	@echo "  features    Run Step 3 (feature extraction based on preprocessed data)"
+	@echo "  split       Run Step 4 (create train/val/test splits)"
 	@echo "  clean       Remove Docker containers, images, and volumes"
 	@echo "  help        Show this help message"
