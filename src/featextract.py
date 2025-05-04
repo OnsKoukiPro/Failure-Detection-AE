@@ -79,11 +79,16 @@ def extract_time_freq_features(signal, sample_rate):
     return features
 
 if __name__ == "__main__":
-    df = pd.read_csv(INPUT_CSV)
+    # Load original + augmented data
+    original_df = pd.read_csv("/app/results/processed_data/processed_metadata.csv")
+    augmented_df = pd.read_csv("/app/results/augmented_data/augmented_metadata.csv")
+    combined_df = pd.concat([original_df, augmented_df], ignore_index=True)
+
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     all_features = []
-    for _, row in tqdm(df.iterrows(), total=len(df), desc="Extracting features"):
+
+    for _, row in tqdm(combined_df.iterrows(), total=len(combined_df), desc="Extracting features"):
         signal = np.load(row["processed_path"])
         features = {}
         features.update(extract_time_domain_features(signal))

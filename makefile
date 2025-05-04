@@ -17,6 +17,11 @@ preprocess: build
 	docker-compose run --rm $(PROJECT_NAME) python src/preprocess.py
 	@echo "Step 3 (Preprocessing) completed. Check ./results/processed_data/"
 
+# Step 2 bis : Preprocessing / augmenting data (augmentdata.csv)
+augment: build
+	docker-compose run --rm $(PROJECT_NAME) python src/augmentdata.py
+	@echo "Augmentation completed. Check ./results/augmented_data/"
+
 # Step 3: Feature extraction
 features: build
 	docker-compose run --rm $(PROJECT_NAME) python src/featextract.py

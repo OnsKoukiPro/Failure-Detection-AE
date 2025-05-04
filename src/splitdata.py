@@ -11,7 +11,6 @@ OUTPUT_DIR = "/app/results/splits"
 TEST_SIZE = 0.2
 VAL_SIZE = 0.1  # Of remaining data after test split
 RANDOM_STATE = 42
-TIME_SPLIT_DATE = "2018-12-10"  # Date to split between train and test
 
 def plot_class_distribution(y, title, filepath):
     plt.figure()
