@@ -37,7 +37,11 @@ train: build
 	docker-compose run --rm $(PROJECT_NAME) python src/train.py \
 		--train_csv /app/results/splits/stratified_train.csv \
 		--test_csv /app/results/splits/stratified_test.csv \
-		--model_type rf
+		--model_type cnn
+
+# Step 6: Train Model
+test: train
+	docker-compose run --rm $(PROJECT_NAME) python src/test.py --model_type cnn
 
 # Clean Docker artifacts
 clean:

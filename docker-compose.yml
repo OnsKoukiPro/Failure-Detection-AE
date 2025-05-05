@@ -6,6 +6,6 @@ services:
       - ./data:/app/data
       - ./data/overview.csv:/app/data/overview.csv
       - ./results:/app/results
-      - ./src:/app/src 
+      - ./src:/app/src
     environment:
       - PYTHONUNBUFFERED=1

@@ -7,6 +7,8 @@ from sklearn.pipeline import make_pipeline
 from sklearn.metrics import classification_report, confusion_matrix
 import tensorflow as tf
 import argparse
+import joblib
+import os
 
 def load_data(train_csv, test_csv):
     """Load and preprocess data with feature selection"""
@@ -48,9 +50,9 @@ def train_cnn(X_train, y_train):
     """Deep learning model with improved architecture"""
     model = tf.keras.Sequential([
         tf.keras.layers.Reshape((X_train.shape[1], 1)),
-        tf.keras.layers.Conv1D(32, 3, activation='relu'),
+        tf.keras.layers.Conv1D(32, 2, activation='relu', padding='same'),
         tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.MaxPooling1D(2),
+        tf.keras.layers.MaxPooling1D(1),
         tf.keras.layers.Dropout(0.3),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(32, activation='relu'),
@@ -68,7 +70,7 @@ def train_cnn(X_train, y_train):
         epochs=15,
         batch_size=32,
         validation_split=0.2,
-        class_weight={0: 0.28, 1: 0.72}  # Inverse of your class distribution
+        class_weight={0: 0.28, 1: 0.72}
     )
     return model
 
@@ -93,7 +95,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--train_csv', type=str, required=True)
     parser.add_argument('--test_csv', type=str, required=True)
-    parser.add_argument('--model_type', choices=['rf', 'cnn'], default='rf')
+    parser.add_argument('--model_type', choices=['rf', 'cnn'], default='cnn')
     args = parser.parse_args()
 
     X_train, y_train, X_test, y_test = load_data(args.train_csv, args.test_csv)
@@ -101,6 +103,10 @@ if __name__ == "__main__":
     if args.model_type == 'rf':
         model = train_random_forest(X_train, y_train)
         y_proba = evaluate_model(model, X_test, y_test, 'rf')
+        os.makedirs('/app/results/models', exist_ok=True)
+        joblib.dump(model, '/app/results/models/failure_detector.pkl')
     elif args.model_type == 'cnn':
         model = train_cnn(X_train.values, y_train.values)
         y_proba = evaluate_model(model, X_test.values, y_test.values, 'cnn')
+        os.makedirs('/app/results/models', exist_ok=True)
+        model.save('/app/results/models/failure_cnn.h5')
