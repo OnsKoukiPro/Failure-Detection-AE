@@ -43,6 +43,8 @@ train: build
 test: train
 	docker-compose run --rm $(PROJECT_NAME) python src/test.py --model_type cnn
 
+realtime:
+	docker-compose run --rm $(PROJECT_NAME) python src/realtime_test.py
 # Clean Docker artifacts
 clean:
 	docker-compose down --rmi all --volumes
