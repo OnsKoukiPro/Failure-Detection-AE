@@ -37,11 +37,13 @@ train: build
 	docker-compose run --rm $(PROJECT_NAME) python src/train.py \
 		--train_csv /app/results/splits/stratified_train.csv \
 		--test_csv /app/results/splits/stratified_test.csv \
-		--model_type cnn
 
 # Step 6: Train Model
 test: train
-	docker-compose run --rm $(PROJECT_NAME) python src/test.py --model_type cnn
+	docker-compose run --rm $(PROJECT_NAME) python src/test.py
+
+validate:
+	docker-compose run --rm $(PROJECT_NAME) python src/validation.py --csv_path /app/results/comparison/predictions_comparison.csv --output_dir /app/results/analysis
 
 realtime:
 	docker-compose run --rm $(PROJECT_NAME) python src/realtime_test.py

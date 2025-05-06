@@ -23,7 +23,7 @@ def load_data(train_csv, test_csv):
     X_test = test_df[important_features]
     y_test = test_df['label']
 
-    return X_train, y_train, X_test, y_test
+    return X_train, y_train, X_test, y_test, test_df
 
 def train_random_forest(X_train, y_train):
     """Traditional ML model with hyperparameter tuning"""
@@ -32,14 +32,12 @@ def train_random_forest(X_train, y_train):
         RandomForestClassifier(class_weight='balanced', random_state=42)
     )
 
-    # Hyperparameter grid
     param_grid = {
         'randomforestclassifier__n_estimators': [100, 200],
         'randomforestclassifier__max_depth': [5, 8, 10],
         'randomforestclassifier__min_samples_split': [2, 5]
     }
 
-    # Grid search with cross-validation
     grid_search = GridSearchCV(pipeline, param_grid, cv=3, scoring='f1')
     grid_search.fit(X_train, y_train)
 
@@ -89,24 +87,39 @@ def evaluate_model(model, X_test, y_test, model_type='rf'):
     print("\nConfusion Matrix:")
     print(confusion_matrix(y_test, y_pred))
 
-    return y_proba
+    return y_pred, y_proba
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--train_csv', type=str, required=True)
     parser.add_argument('--test_csv', type=str, required=True)
-    parser.add_argument('--model_type', choices=['rf', 'cnn'], default='cnn')
     args = parser.parse_args()
 
-    X_train, y_train, X_test, y_test = load_data(args.train_csv, args.test_csv)
+    # Load data with original test dataframe
+    X_train, y_train, X_test, y_test, test_df = load_data(args.train_csv, args.test_csv)
 
-    if args.model_type == 'rf':
-        model = train_random_forest(X_train, y_train)
-        y_proba = evaluate_model(model, X_test, y_test, 'rf')
-        os.makedirs('/app/results/models', exist_ok=True)
-        joblib.dump(model, '/app/results/models/failure_detector.pkl')
-    elif args.model_type == 'cnn':
-        model = train_cnn(X_train.values, y_train.values)
-        y_proba = evaluate_model(model, X_test.values, y_test.values, 'cnn')
-        os.makedirs('/app/results/models', exist_ok=True)
-        model.save('/app/results/models/failure_cnn.h5')
+    # Train and evaluate Random Forest
+    print("Training Random Forest...")
+    rf_model = train_random_forest(X_train, y_train)
+    rf_pred, rf_proba = evaluate_model(rf_model, X_test, y_test, 'rf')
+
+    # Train and evaluate CNN
+    print("\nTraining CNN...")
+    cnn_model = train_cnn(X_train.values, y_train.values)
+    cnn_pred, cnn_proba = evaluate_model(cnn_model, X_test.values, y_test.values, 'cnn')
+
+    # Create comparison dataframe
+    comparison_df = test_df.copy()
+    comparison_df['rf_prediction'] = rf_pred
+    comparison_df['rf_probability'] = rf_proba
+    comparison_df['cnn_prediction'] = cnn_pred
+    comparison_df['cnn_probability'] = cnn_proba
+
+    # Save results
+    os.makedirs('/app/results/models', exist_ok=True)
+    joblib.dump(rf_model, '/app/results/models/rf_model.pkl')
+    cnn_model.save('/app/results/models/cnn_model.h5')
+
+    os.makedirs('/app/results/comparison', exist_ok=True)
+    comparison_df.to_csv('/app/results/comparison/predictions_comparison.csv', index=False)
+    print("\nComparison CSV saved at /app/results/comparison/predictions_comparison.csv")
