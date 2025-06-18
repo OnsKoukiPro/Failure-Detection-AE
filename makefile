@@ -60,6 +60,9 @@ validate-:
 
 realtime:
 	docker-compose run --rm $(PROJECT_NAME) python src/realtime_test.py
+
+graph:
+	docker-compose run --rm ae-model python src/graph.py
 # Clean Docker artifacts
 clean:
 	docker-compose down --rmi all --volumes
