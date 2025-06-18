@@ -27,6 +27,11 @@ features: build
 	docker-compose run --rm $(PROJECT_NAME) python src/featextract.py
 	@echo "Feature extraction completed. Check ./results/features/"
 
+# Step 3: Feature extraction unsupervised mode, no augmented data
+features-: build
+	docker-compose run --rm $(PROJECT_NAME) python src/featextractunsup.py
+	@echo "Feature extraction completed. Check ./results/features/"
+
 # Step 4: Data Split (Test / Train)
 split: build
 	docker-compose run --rm $(PROJECT_NAME) python src/splitdata.py
@@ -38,12 +43,20 @@ train: build
 		--train_csv /app/results/splits/stratified_train.csv \
 		--test_csv /app/results/splits/stratified_test.csv \
 
+# Step 5: Train Unsupervised Model Isolation Forest (Anomaly Detection)
+# DBSCAN (Clustering)
+train-: build
+	docker-compose run --rm ae-model python src/trainunsup.py
+
 # Step 6: Train Model
 test: train
 	docker-compose run --rm $(PROJECT_NAME) python src/test.py
 
 validate:
 	docker-compose run --rm $(PROJECT_NAME) python src/validation.py --csv_path /app/results/comparison/predictions_comparison.csv --output_dir /app/results/analysis
+
+validate-:
+	docker-compose run --rm ae-model python src/validateunsup.py
 
 realtime:
 	docker-compose run --rm $(PROJECT_NAME) python src/realtime_test.py
