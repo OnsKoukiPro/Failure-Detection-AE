@@ -48,13 +48,15 @@ train: build
 train-: build
 	docker-compose run --rm ae-model python src/trainunsup.py
 
-# Step 6: Train Model
+# Step 6: Test Model
 test: train
 	docker-compose run --rm $(PROJECT_NAME) python src/test.py
 
+# Step 7: Validate Model
 validate:
 	docker-compose run --rm $(PROJECT_NAME) python src/validation.py --csv_path /app/results/comparison/predictions_comparison.csv --output_dir /app/results/analysis
 
+# Step 7: Validate Unsupervised Model
 validate-:
 	docker-compose run --rm ae-model python src/validateunsup.py
 
@@ -63,6 +65,9 @@ realtime:
 
 graph:
 	docker-compose run --rm ae-model python src/graph.py
+
+analyse:
+	docker-compose run --rm ae-model python src/analyse.py
 # Clean Docker artifacts
 clean:
 	docker-compose down --rmi all --volumes
