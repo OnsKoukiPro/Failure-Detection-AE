@@ -12,15 +12,25 @@ map: build
 	docker-compose run --rm $(PROJECT_NAME) python src/map.py
 	@echo "Step 1 (Mapping) completed. Check ./results/mapped_dataset.csv"
 
+# Step 1 FOR KI: Dataset Mapping (metadata.csv)
+map-ki: build
+	docker-compose run --rm $(PROJECT_NAME) python src/KI/map.py
+	@echo "Step 1 (Mapping) completed. Check ./results/KI/metadata.csv"
+
 # Step 2: Preprocessing (mapped_dataset.csv)
 preprocess: build
 	docker-compose run --rm $(PROJECT_NAME) python src/preprocess.py
-	@echo "Step 3 (Preprocessing) completed. Check ./results/processed_data/"
+	@echo "Step 2  (Preprocessing) completed. Check ./results/processed_data/"
 
 # Step 2 bis : Preprocessing / augmenting data (augmentdata.csv)
 augment: build
 	docker-compose run --rm $(PROJECT_NAME) python src/augmentdata.py
 	@echo "Augmentation completed. Check ./results/augmented_data/"
+
+# Step 2 FOR KI: Preprocessing (metadata.csv)
+process-ki: build
+	docker-compose run --rm $(PROJECT_NAME) python src/KI/preprocess.py
+	@echo "Step 2 (Preprocessing) completed. Check ./results/KI/processed"
 
 # Step 3: Feature extraction
 features: build
@@ -31,6 +41,11 @@ features: build
 features-: build
 	docker-compose run --rm $(PROJECT_NAME) python src/featextractunsup.py
 	@echo "Feature extraction completed. Check ./results/features/"
+
+# Step 3: Feature extraction unsupervised mode, no augmented data ,KI
+features-ki: build
+	docker-compose run --rm $(PROJECT_NAME) python src/KI/featextract.py
+	@echo "Feature extraction completed. Check ./results/KI/features"
 
 # Step 4: Data Split (Test / Train)
 split: build
@@ -48,6 +63,10 @@ train: build
 train-: build
 	docker-compose run --rm ae-model python src/trainunsup.py
 
+# Step 5: Train Unsupervised Model KI
+train-ki: build
+	docker-compose run --rm ae-model python src/KI/train.py
+
 # Step 6: Test Model
 test: train
 	docker-compose run --rm $(PROJECT_NAME) python src/test.py
@@ -59,6 +78,10 @@ validate:
 # Step 7: Validate Unsupervised Model
 validate-:
 	docker-compose run --rm ae-model python src/validateunsup.py
+
+# Step 7: Validate Unsupervised Model KI
+validate-ki:
+	docker-compose run --rm ae-model python src/KI/analyse.py
 
 realtime:
 	docker-compose run --rm $(PROJECT_NAME) python src/realtime_test.py

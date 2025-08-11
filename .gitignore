@@ -3,8 +3,6 @@ data/**/*
 *.wav
 *.csv
 
-results/
-
 # Python and environment files
 __pycache__/
 *.py[cod]
@@ -18,3 +16,9 @@ env/
 .vscode/
 .idea/
 .DS_Store
+
+results/*
+!results/KI/
+!results/KI/**
+results/KI/processed/
+results/KI/processed/**

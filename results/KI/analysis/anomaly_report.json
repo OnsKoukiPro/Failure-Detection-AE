@@ -1,0 +1,69 @@
+{
+  "summary": {
+    "total_samples": 200,
+    "total_anomalies": 12,
+    "anomaly_rate": 0.06
+  },
+  "by_anchor": {
+    "sum": {
+      "Anschlagpunkt1": 3,
+      "Anschlagpunkt2": 3,
+      "Anschlagpunkt3": 3,
+      "Anschlagpunkt4": 3
+    },
+    "mean": {
+      "Anschlagpunkt1": 0.06,
+      "Anschlagpunkt2": 0.06,
+      "Anschlagpunkt3": 0.06,
+      "Anschlagpunkt4": 0.06
+    },
+    "std": {
+      "Anschlagpunkt1": 0.2398979374820952,
+      "Anschlagpunkt2": 0.23989793748209523,
+      "Anschlagpunkt3": 0.23989793748209523,
+      "Anschlagpunkt4": 0.2398979374820952
+    }
+  },
+  "anomaly_clusters": [
+    {
+      "anchor_point": "Anschlagpunkt1",
+      "cluster_id": 0,
+      "start_time": "2017-08-07T11:08:23",
+      "end_time": "2017-08-07T11:09:01",
+      "duration": 0.6333333333333333,
+      "anomaly_count": 3,
+      "avg_score": 0.9710885027673352,
+      "max_score": 0.9776284329687516
+    },
+    {
+      "anchor_point": "Anschlagpunkt2",
+      "cluster_id": 0,
+      "start_time": "2017-08-07T11:08:24",
+      "end_time": "2017-08-07T11:08:52",
+      "duration": 0.4666666666666667,
+      "anomaly_count": 3,
+      "avg_score": 0.943247961227229,
+      "max_score": 0.9454258291683592
+    },
+    {
+      "anchor_point": "Anschlagpunkt3",
+      "cluster_id": 0,
+      "start_time": "2017-08-07T11:08:22",
+      "end_time": "2017-08-07T11:08:50",
+      "duration": 0.4666666666666667,
+      "anomaly_count": 3,
+      "avg_score": 0.9805133267513199,
+      "max_score": 1.0
+    },
+    {
+      "anchor_point": "Anschlagpunkt4",
+      "cluster_id": 0,
+      "start_time": "2017-08-07T11:08:25",
+      "end_time": "2017-08-07T11:09:02",
+      "duration": 0.6166666666666667,
+      "anomaly_count": 3,
+      "avg_score": 0.9655702997104268,
+      "max_score": 0.9846270154249132
+    }
+  ]
+}
