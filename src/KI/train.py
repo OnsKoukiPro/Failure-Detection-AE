@@ -8,7 +8,7 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.feature_selection import VarianceThreshold
-from sklearn.covariance import MinCovDet 
+from sklearn.covariance import MinCovDet
 
 def train_unsupervised_models(features_csv, output_dir, contamination=0.05):
     """
@@ -104,30 +104,25 @@ def train_unsupervised_models(features_csv, output_dir, contamination=0.05):
     print("LOF training complete with regularized Mahalanobis metric")
 
     # === Create Ensemble Predictions ===
-    # Initialize score arrays
     iso_scores = iso_forest.decision_function(X_scaled)
-    lof_scores = -lof.negative_outlier_factor_  # Flip LOF scores
+    lof_scores = -lof.negative_outlier_factor_
     anchor_scores = np.zeros(len(X_scaled))
 
-    # Calculate anchor-specific scores
     for anchor, model in anchor_models.items():
         anchor_mask = metadata["anchor_point"] == anchor
         selector, pca = anchor_pipelines[anchor]
 
         try:
-            # Transform anchor data
             X_anchor = X_scaled[anchor_mask]
             X_anchor_selected = selector.transform(X_anchor)
             X_anchor_pca = pca.transform(X_anchor_selected)
 
-            # Get scores and normalize per anchor group
             scores = model.decision_function(X_anchor_pca)
             scores = (scores - scores.min()) / (scores.max() - scores.min() + 1e-12)
             anchor_scores[anchor_mask] = scores
         except Exception as e:
             print(f"Error scoring {anchor}: {str(e)}")
 
-    # Combine scores with adaptive weighting
     iso_scores_norm = (iso_scores - iso_scores.min()) / (iso_scores.max() - iso_scores.min())
     lof_scores_norm = (lof_scores - lof_scores.min()) / (lof_scores.max() - lof_scores.min())
 
@@ -150,10 +145,10 @@ def train_unsupervised_models(features_csv, output_dir, contamination=0.05):
         'anchor_models': anchor_models,
         'anchor_pipelines': anchor_pipelines,
         'lof': lof,
-        'scaler': scaler
+        'scaler': scaler,
+        'feature_columns': feature_columns  # Save feature names for SHAP
     }, os.path.join(output_dir, "ensemble_model.pkl"))
 
-    # Save predictions
     results_df = metadata.copy()
     results_df['iso_score'] = iso_scores_norm
     results_df['lof_score'] = lof_scores_norm

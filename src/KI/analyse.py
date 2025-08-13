@@ -6,10 +6,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import precision_recall_curve
 from datetime import datetime, timedelta
+import joblib
 
-
-import numpy as np
-import json
+# Additional imports
+import shap
+import ruptures as rpt
+from tslearn.clustering import TimeSeriesKMeans
+from tslearn.preprocessing import TimeSeriesScalerMeanVariance
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -19,9 +22,9 @@ class NumpyEncoder(json.JSONEncoder):
             return float(obj)
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
-        elif isinstance(obj, pd.Timestamp):  # ✅ NEW
+        elif isinstance(obj, pd.Timestamp):
             return obj.isoformat()
-        elif isinstance(obj, pd.Timedelta):  # ✅ Also useful
+        elif isinstance(obj, pd.Timedelta):
             return str(obj)
         else:
             return super().default(obj)
@@ -29,21 +32,16 @@ class NumpyEncoder(json.JSONEncoder):
 
 # 1. Threshold Optimization & Anomaly Detection
 def optimize_thresholds(df, output_dir):
-    """
-    Determine optimal thresholds per anchor point and detection method
-    """
     os.makedirs(output_dir, exist_ok=True)
     thresholds = {}
     anomaly_flags = pd.DataFrame()
 
-    # Convert timestamp to datetime if needed
     if not pd.api.types.is_datetime64_any_dtype(df['timestamp']):
         df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
 
     for anchor in df['anchor_point'].unique():
         anchor_df = df[df['anchor_point'] == anchor].copy()
 
-        # Method 1: Percentile-based (domain-informed)
         thresholds[f"{anchor}_percentile"] = {
             "iso": np.percentile(anchor_df['iso_score'], 5),
             "lof": np.percentile(anchor_df['lof_score'], 95),
@@ -51,11 +49,10 @@ def optimize_thresholds(df, output_dir):
             "ensemble": np.percentile(anchor_df['ensemble_score'], 95)
         }
 
-        # Method 2: Precision-Recall optimization (if partial labels exist)
         if 'label' in df.columns:
             prec, recall, threshs = precision_recall_curve(
                 anchor_df['label'],
-                -anchor_df['ensemble_score']  # Higher score = more anomalous
+                -anchor_df['ensemble_score']
             )
             f1_scores = 2 * (prec * recall) / (prec + recall + 1e-12)
             best_idx = np.argmax(f1_scores)
@@ -63,12 +60,10 @@ def optimize_thresholds(df, output_dir):
                 "ensemble": threshs[best_idx]
             }
 
-        # Apply thresholds (using conservative ensemble approach)
         anchor_threshold = thresholds[f"{anchor}_percentile"]["ensemble"]
         anchor_df['anomaly_flag'] = anchor_df['ensemble_score'] > anchor_threshold
         anomaly_flags = pd.concat([anomaly_flags, anchor_df])
 
-    # Save thresholds and anomaly flags
     with open(os.path.join(output_dir, "thresholds.json"), "w") as f:
         json.dump(thresholds, f, indent=2, cls=NumpyEncoder)
 
@@ -76,10 +71,7 @@ def optimize_thresholds(df, output_dir):
     return thresholds, anomaly_flags
 
 def visualize_anomalies(df, thresholds, output_dir):
-    """Generate diagnostic visualizations"""
     os.makedirs(output_dir, exist_ok=True)
-
-    # 1. Score distributions with thresholds
     plt.figure(figsize=(15, 10))
     anchors = df['anchor_point'].unique()
     n_anchors = len(anchors)
@@ -88,8 +80,6 @@ def visualize_anomalies(df, thresholds, output_dir):
         plt.subplot(int(np.ceil(n_anchors / 2)), 2, i)
         anchor_df = df[df['anchor_point'] == anchor]
         sns.histplot(anchor_df['ensemble_score'], kde=True)
-
-        # Add threshold line
         if f"{anchor}_percentile" in thresholds:
             plt.axvline(
                 thresholds[f"{anchor}_percentile"]["ensemble"],
@@ -97,7 +87,6 @@ def visualize_anomalies(df, thresholds, output_dir):
                 linestyle='--',
                 label='Threshold'
             )
-
         plt.title(f"{anchor} - Ensemble Score Distribution")
         plt.legend()
 
@@ -105,20 +94,15 @@ def visualize_anomalies(df, thresholds, output_dir):
     plt.savefig(os.path.join(output_dir, "score_distributions.png"))
     plt.close()
 
-    # 2. Temporal anomaly progression
     plt.figure(figsize=(15, 8))
     for anchor in anchors:
         anchor_df = df[df['anchor_point'] == anchor].sort_values('timestamp')
-
-        # Plot scores
         plt.plot(
             anchor_df['timestamp'],
             anchor_df['ensemble_score'],
             label=anchor,
             alpha=0.7
         )
-
-        # Plot anomalies
         anomalies = anchor_df[anchor_df['anomaly_flag']]
         if not anomalies.empty:
             plt.scatter(
@@ -129,7 +113,6 @@ def visualize_anomalies(df, thresholds, output_dir):
                 label=f'{anchor} Anomalies'
             )
 
-    # Add reference line
     if anchors.size > 0 and f"{anchors[0]}_percentile" in thresholds:
         plt.axhline(
             thresholds[f"{anchors[0]}_percentile"]["ensemble"],
@@ -145,7 +128,6 @@ def visualize_anomalies(df, thresholds, output_dir):
     plt.savefig(os.path.join(output_dir, "temporal_anomalies.png"))
     plt.close()
 
-    # 3. Anchor point comparison
     plt.figure(figsize=(10, 6))
     sns.boxplot(
         x='anchor_point',
@@ -153,8 +135,6 @@ def visualize_anomalies(df, thresholds, output_dir):
         data=df,
         showfliers=False
     )
-
-    # Add anomaly points
     anomalies_df = df[df['anomaly_flag']]
     if not anomalies_df.empty:
         sns.stripplot(
@@ -165,7 +145,6 @@ def visualize_anomalies(df, thresholds, output_dir):
             size=5,
             jitter=0.2
         )
-
     plt.title("Anomaly Score Distribution by Anchor Point")
     plt.xticks(rotation=45)
     plt.tight_layout()
@@ -174,29 +153,24 @@ def visualize_anomalies(df, thresholds, output_dir):
 
 # 2. Failure Pattern Analysis & Reporting
 def analyze_failure_patterns(anomaly_df, output_dir):
-    """Identify failure patterns and generate reports"""
     os.makedirs(output_dir, exist_ok=True)
     report = {}
 
-    # 1. Basic anomaly statistics
     report["summary"] = {
         "total_samples": len(anomaly_df),
         "total_anomalies": anomaly_df['anomaly_flag'].sum(),
         "anomaly_rate": anomaly_df['anomaly_flag'].mean()
     }
 
-    # Anchor-specific stats
     anchor_stats = anomaly_df.groupby('anchor_point')['anomaly_flag'].agg(['sum', 'mean', 'std'])
     report["by_anchor"] = anchor_stats.to_dict()
 
-    # 2. Temporal clustering of anomalies
     if not pd.api.types.is_datetime64_any_dtype(anomaly_df['timestamp']):
         anomaly_df['timestamp'] = pd.to_datetime(anomaly_df['timestamp'], errors='coerce')
 
     anomaly_df = anomaly_df.sort_values(['anchor_point', 'timestamp'])
     anomaly_df['time_diff'] = anomaly_df.groupby('anchor_point')['timestamp'].diff()
 
-    # Identify anomaly clusters
     consecutive = anomaly_df[anomaly_df['anomaly_flag']].copy()
     consecutive['time_gap'] = consecutive['time_diff'] > timedelta(minutes=5)
     consecutive['cluster_id'] = consecutive.groupby('anchor_point')['time_gap'].cumsum()
@@ -212,7 +186,6 @@ def analyze_failure_patterns(anomaly_df, output_dir):
 
     report["anomaly_clusters"] = cluster_report.to_dict(orient='records')
 
-    # 3. Critical anomaly identification
     critical_anomalies = []
     for anchor in anchor_stats.index:
         anchor_anomalies = anomaly_df[
@@ -232,7 +205,6 @@ def analyze_failure_patterns(anomaly_df, output_dir):
     else:
         critical_df = pd.DataFrame()
 
-    # 4. Save reports
     with open(os.path.join(output_dir, "anomaly_report.json"), "w") as f:
         json.dump(report, f, indent=2, cls=NumpyEncoder)
 
@@ -243,11 +215,176 @@ def analyze_failure_patterns(anomaly_df, output_dir):
 
     return report
 
-# Main execution function
+
+# ========== NEW: SHAP Feature Importance ==========
+
+def shap_feature_importance(model_path, features_csv, output_dir, sample_size=100):
+    """
+    Compute SHAP values for feature importance using Isolation Forest
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Load model and data
+    model_data = joblib.load(model_path)
+    iso_forest = model_data['iso_forest']
+    scaler = model_data['scaler']
+    feature_names = model_data['feature_columns']
+
+    df = pd.read_csv(features_csv)
+    feature_columns = feature_names
+    X = df[feature_columns].values
+    X_scaled = scaler.transform(X)
+
+    # Use a sample for SHAP due to performance
+    if sample_size < len(X_scaled):
+        sample_idx = np.random.choice(len(X_scaled), sample_size, replace=False)
+        X_sample = X_scaled[sample_idx]
+    else:
+        X_sample = X_scaled
+
+    explainer = shap.Explainer(iso_forest, X_sample, feature_names=feature_names)
+    shap_values = explainer(X_sample)
+
+    # Summary plot
+    plt.figure(figsize=(10, 8))
+    shap.summary_plot(shap_values, features=X_sample, feature_names=feature_names, show=False)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, "shap_summary.png"))
+    plt.close()
+
+    # Save raw SHAP values
+    np.save(os.path.join(output_dir, "shap_values.npy"), shap_values.values)
+    print(f"SHAP feature importance saved to {output_dir}")
+
+
+# ========== NEW: Multivariate Temporal Analysis ==========
+
+def temporal_correlation_heatmap(df, output_dir):
+    """
+    Cross-anchor correlation heatmap of ensemble scores to detect systemic issues
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    pivot = df.pivot(index='timestamp', columns='anchor_point', values='ensemble_score')
+    corr = pivot.corr()
+
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(corr, annot=True, cmap='coolwarm', vmin=-1, vmax=1)
+    plt.title("Cross-Anchor Ensemble Score Correlation")
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, "cross_anchor_correlation.png"))
+    plt.close()
+
+
+def lead_lag_analysis(df, output_dir, max_lag=10):
+    """
+    Simple lead-lag cross correlation between anchors
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    pivot = df.pivot(index='timestamp', columns='anchor_point', values='ensemble_score').fillna(0)
+
+    anchors = pivot.columns
+    lags = range(-max_lag, max_lag + 1)
+
+    lead_lag_results = {}
+
+    for a1 in anchors:
+        for a2 in anchors:
+            if a1 == a2:
+                continue
+            corr_vals = []
+            for lag in lags:
+                shifted = pivot[a2].shift(lag).fillna(0)
+                corr = pivot[a1].corr(shifted)
+                corr_vals.append(corr)
+            lead_lag_results[(a1, a2)] = corr_vals
+
+            plt.figure(figsize=(8, 4))
+            plt.plot(lags, corr_vals)
+            plt.title(f"Lead-Lag Correlation: {a1} vs {a2}")
+            plt.xlabel("Lag")
+            plt.ylabel("Correlation")
+            plt.grid(True)
+            plt.tight_layout()
+            plt.savefig(os.path.join(output_dir, f"lead_lag_{a1}_vs_{a2}.png"))
+            plt.close()
+
+    return lead_lag_results
+
+
+def change_point_detection(df, output_dir):
+    """
+    Detect change points in ensemble scores over time using ruptures
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    pivot = df.pivot(index='timestamp', columns='anchor_point', values='ensemble_score').fillna(method='ffill').fillna(method='bfill')
+    results = {}
+
+    for anchor in pivot.columns:
+        signal = pivot[anchor].values
+        model = "rbf"
+        algo = rpt.Pelt(model=model).fit(signal)
+        change_points = algo.predict(pen=5)
+
+        results[anchor] = change_points
+
+        plt.figure(figsize=(10, 4))
+        rpt.display(signal, change_points, figsize=(10, 4))
+        plt.title(f"Change Point Detection for {anchor}")
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, f"change_points_{anchor}.png"))
+        plt.close()
+
+    # Save change points to JSON
+    with open(os.path.join(output_dir, "change_points.json"), "w") as f:
+        json.dump(results, f, indent=2)
+
+    return results
+
+
+def time_series_clustering(df, output_dir, n_clusters=3):
+    """
+    Cluster anomaly score time series using DTW KMeans (tslearn)
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    pivot = df.pivot(index='timestamp', columns='anchor_point', values='ensemble_score').fillna(0)
+
+    # Normalize time series
+    scaler = TimeSeriesScalerMeanVariance()
+    ts_data = scaler.fit_transform(pivot.T.values)  # shape: (anchors, timestamps, 1)
+
+    # Cluster
+    model = TimeSeriesKMeans(n_clusters=n_clusters, metric="dtw", random_state=42)
+    labels = model.fit_predict(ts_data)
+
+    cluster_map = dict(zip(pivot.columns, labels))
+
+    # Plot clustering result
+    plt.figure(figsize=(10, 6))
+    for label in range(n_clusters):
+        members = [anchor for anchor, cluster in cluster_map.items() if cluster == label]
+        for anchor in members:
+            plt.plot(pivot.index, pivot[anchor], label=f"{anchor} (Cluster {label})")
+    plt.title("Time Series Clustering of Ensemble Scores by Anchor")
+    plt.xlabel("Timestamp")
+    plt.ylabel("Ensemble Score")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, "time_series_clustering.png"))
+    plt.close()
+
+    # Save cluster assignments
+    with open(os.path.join(output_dir, "ts_clusters.json"), "w") as f:
+        json.dump(cluster_map, f, indent=2, cls=NumpyEncoder)
+
+    return cluster_map
+
+
 def main():
-    # Configuration
-    INPUT_CSV = "/app/results/KI/models/model_predictions.csv"  # From training step
+    INPUT_CSV = "/app/results/KI/models/model_predictions.csv"
     OUTPUT_DIR = "/app/results/KI/analysis"
+    MODEL_PATH = "/app/results/KI/models/ensemble_model.pkl"
+    FEATURES_CSV = "/app/results/KI/features.csv"
 
     # Load model predictions
     df = pd.read_csv(INPUT_CSV)
@@ -255,11 +392,20 @@ def main():
     # 1. Threshold optimization and anomaly detection
     thresholds, anomaly_df = optimize_thresholds(df, OUTPUT_DIR)
 
-    # 2. Visualization
+    # 2. Visualization of anomalies and patterns
     visualize_anomalies(anomaly_df, thresholds, OUTPUT_DIR)
 
     # 3. Failure pattern analysis
     report = analyze_failure_patterns(anomaly_df, OUTPUT_DIR)
+
+    # 4. SHAP feature importance
+    shap_feature_importance(MODEL_PATH, FEATURES_CSV, OUTPUT_DIR)
+
+    # 5. Multivariate temporal analysis
+    temporal_correlation_heatmap(anomaly_df, OUTPUT_DIR)
+    lead_lag_analysis(anomaly_df, OUTPUT_DIR)
+    change_point_detection(anomaly_df, OUTPUT_DIR)
+    time_series_clustering(anomaly_df, OUTPUT_DIR)
 
     print(f"Analysis complete. Results saved to {OUTPUT_DIR}")
     print(f"Total anomalies detected: {report['summary']['total_anomalies']}")

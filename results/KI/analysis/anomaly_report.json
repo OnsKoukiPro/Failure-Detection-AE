@@ -32,8 +32,8 @@
       "end_time": "2017-08-07T11:09:01",
       "duration": 0.6333333333333333,
       "anomaly_count": 3,
-      "avg_score": 0.9710885027673352,
-      "max_score": 0.9776284329687516
+      "avg_score": 0.9302678666532564,
+      "max_score": 0.9365328846193794
     },
     {
       "anchor_point": "Anschlagpunkt2",
@@ -42,8 +42,8 @@
       "end_time": "2017-08-07T11:08:52",
       "duration": 0.4666666666666667,
       "anomaly_count": 3,
-      "avg_score": 0.943247961227229,
-      "max_score": 0.9454258291683592
+      "avg_score": 0.9035976289651565,
+      "max_score": 0.905683948139644
     },
     {
       "anchor_point": "Anschlagpunkt3",
@@ -52,18 +52,18 @@
       "end_time": "2017-08-07T11:08:50",
       "duration": 0.4666666666666667,
       "anomaly_count": 3,
-      "avg_score": 0.9805133267513199,
+      "avg_score": 0.9510893636814995,
       "max_score": 1.0
     },
     {
       "anchor_point": "Anschlagpunkt4",
       "cluster_id": 0,
-      "start_time": "2017-08-07T11:08:25",
+      "start_time": "2017-08-07T11:08:50",
       "end_time": "2017-08-07T11:09:02",
-      "duration": 0.6166666666666667,
+      "duration": 0.2,
       "anomaly_count": 3,
-      "avg_score": 0.9655702997104268,
-      "max_score": 0.9846270154249132
+      "avg_score": 0.9253370230203974,
+      "max_score": 0.9422665757189196
     }
   ]
 }

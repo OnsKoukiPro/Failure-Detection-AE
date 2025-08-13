@@ -10,3 +10,6 @@ tqdm==4.64.1
 matplotlib==3.7.5
 seaborn==0.13.2
 nolds
+shap
+ruptures
+tslearn
