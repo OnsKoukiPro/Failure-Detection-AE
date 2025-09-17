@@ -13,3 +13,4 @@ nolds
 shap
 ruptures
 tslearn
+umap-learn
