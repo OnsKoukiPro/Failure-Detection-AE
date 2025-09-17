@@ -17,6 +17,11 @@ map-ki: build
 	docker-compose run --rm $(PROJECT_NAME) python src/KI/map.py
 	@echo "Step 1 (Mapping) completed. Check ./results/KI/metadata.csv"
 
+# Step 1 FOR KI2: Dataset Mapping (metadata.csv)
+map-ki2: build
+	docker-compose run --rm $(PROJECT_NAME) python src/KI2/map.py
+	@echo "Step 1 (Mapping) completed. Check ./results/KI2/metadata.csv"
+
 # Step 2: Preprocessing (mapped_dataset.csv)
 preprocess: build
 	docker-compose run --rm $(PROJECT_NAME) python src/preprocess.py
@@ -47,6 +52,11 @@ features-ki: build
 	docker-compose run --rm $(PROJECT_NAME) python src/KI/featextract.py
 	@echo "Feature extraction completed. Check ./results/KI/features"
 
+# Step 3: Feature extraction unsupervised mode, no augmented data ,KI2
+features-ki2: build
+	docker-compose run --rm $(PROJECT_NAME) python src/KI2/featextract.py
+	@echo "Feature extraction completed. Check ./results/KI2/features"
+
 # Step 4: Data Split (Test / Train)
 split: build
 	docker-compose run --rm $(PROJECT_NAME) python src/splitdata.py
@@ -67,6 +77,13 @@ train-: build
 train-ki: build
 	docker-compose run --rm ae-model python src/KI/train.py
 
+# Step 5: Train Unsupervised Model KI2 LSTM
+train-ki2: build
+	docker-compose run --rm ae-model python src/KI2/lstmtrain2.py
+
+# Step 5: Train Unsupervised Model KI2 isolation forest
+train-ki22: build
+	docker-compose run --rm ae-model python src/KI2/isolationforesttrain.py
 # Step 6: Test Model
 test: train
 	docker-compose run --rm $(PROJECT_NAME) python src/test.py
@@ -82,6 +99,15 @@ validate-:
 # Step 7: Validate Unsupervised Model KI
 validate-ki:
 	docker-compose run --rm ae-model python src/KI/analyse.py
+
+# Step 7: Validate Unsupervised Model KI2
+validate-ki:
+	docker-compose run --rm ae-model python src/KI2/comparison.py
+
+# Step 7: Validate Unsupervised Model KI2
+validate-ki2:
+	docker-compose run --rm ae-model python src/KI2/stackedtrain.py
+
 
 realtime:
 	docker-compose run --rm $(PROJECT_NAME) python src/realtime_test.py
